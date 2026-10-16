@@ -1,0 +1,148 @@
+@page "/subscribe"
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Lucky Box</PageTitle>
+
+@* The background image lives at wwwroot/subscribeBg.webp, so the path is just "subscribeBg.webp".
+   bg-cover fills the whole section, bg-center keeps the middle of the picture visible when it crops. *@
+<section class="bg-gray-200 bg-cover bg-center bg-no-repeat"
+         style="background-image: url('subscribeBg.webp')">
+    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+        <div class="mx-auto max-w-xl rounded-2xl bg-brand p-6 text-white shadow-[-8px_8px_0_rgba(0,0,0,0.2)] sm:p-10">
+
+            @if (confirmedPlan is not null)
+            {
+                @* ---------- After a valid submit ---------- *@
+                <div class="text-center" role="status">
+                    <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-white text-brand">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="size-8" aria-hidden="true">
+                            <path d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+
+                    <h1 class="mt-6 text-3xl font-bold">You're subscribed!</h1>
+                    <p class="mt-3 text-white/90">
+                        Thanks, @(form.Name). Your @(confirmedPlan.Name) Lucky Box is set up
+                        at @PriceText(confirmedPlan.Price) per month.
+                    </p>
+                    <p class="mt-2 text-sm text-white/70">This is a demo, so no payment was taken and nothing was saved.</p>
+
+                    <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                        <a href="merch" class="bg-white px-6 py-3 font-bold text-brand hover:bg-gray-100">Browse merch</a>
+                        <button type="button" @onclick="Reset" class="border border-white/60 px-6 py-3 font-semibold hover:bg-white/10">Subscribe again</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @* ---------- The sign-up form ---------- *@
+                <h1 class="text-3xl font-bold">Monthly Lucky Box</h1>
+                <p class="mt-3 text-white/90">
+                    A random box of merch, delivered every month. You never know what you will get,
+                    and that is the fun of it.
+                </p>
+
+                <EditForm Model="form" OnValidSubmit="Submit" class="mt-8 space-y-6">
+                    <DataAnnotationsValidator />
+
+                    @* Plan picker: three buttons, the selected one is highlighted *@
+                    <fieldset>
+                        <legend class="mb-3 font-semibold">Choose your box</legend>
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            @foreach (var plan in plans)
+                            {
+                                var isSelected = plan.Id == form.PlanId;
+
+                                <button type="button" @onclick="() => form.PlanId = plan.Id"
+                                        aria-pressed="@(isSelected ? "true" : "false")"
+                                        class="rounded-xl border-2 p-4 text-left transition @(isSelected ? "border-white bg-white text-brand" : "border-white/40 hover:border-white/80")">
+                                    <span class="block font-bold">@plan.Name</span>
+                                    <span class="mt-1 block text-2xl font-bold">@PriceText(plan.Price)<span class="text-sm font-normal">/mo</span></span>
+                                    <span class="mt-1 block text-sm @(isSelected ? "text-gray-600" : "text-white/80")">@plan.Blurb</span>
+                                </button>
+                            }
+                        </div>
+                    </fieldset>
+
+                    <div>
+                        <label for="sub-name" class="mb-1 block text-sm font-semibold">Full name</label>
+                        <InputText id="sub-name" @bind-Value="form.Name" class="@FieldClass" autocomplete="name" placeholder="Your name" />
+                        <ValidationMessage For="() => form.Name" class="mt-1 text-sm text-yellow-200" />
+                    </div>
+
+                    <div>
+                        <label for="sub-email" class="mb-1 block text-sm font-semibold">Email</label>
+                        <InputText id="sub-email" type="email" @bind-Value="form.Email" class="@FieldClass" autocomplete="email" placeholder="you@example.com" />
+                        <ValidationMessage For="() => form.Email" class="mt-1 text-sm text-yellow-200" />
+                    </div>
+
+                    <div>
+                        <label for="sub-address" class="mb-1 block text-sm font-semibold">Shipping address</label>
+                        <InputTextArea id="sub-address" @bind-Value="form.Address" rows="3" class="@FieldClass" autocomplete="street-address" placeholder="Street, city, postal code, country" />
+                        <ValidationMessage For="() => form.Address" class="mt-1 text-sm text-yellow-200" />
+                    </div>
+
+                    <div class="border-t border-white/30 pt-6">
+                        <div class="flex items-baseline justify-between">
+                            <span>@SelectedPlan.Name box</span>
+                            <span class="text-2xl font-bold">@PriceText(SelectedPlan.Price)<span class="text-sm font-normal">/month</span></span>
+                        </div>
+
+                        <button type="submit" class="mt-4 w-full bg-white py-3 font-bold text-brand hover:bg-gray-100">Subscribe</button>
+                        <p class="mt-3 text-center text-xs text-white/70">Demo only. No payment is taken and nothing is saved.</p>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    // The classes for all three inputs live in one place, so you only change them once.
+    private const string FieldClass =
+        "w-full rounded-lg bg-white px-4 py-2.5 text-black placeholder:text-gray-400 focus:outline-2 focus:outline-offset-2 focus:outline-white";
+
+    // The three boxes. Change names, prices and descriptions here.
+    private record LuckyPlan(string Id, string Name, decimal Price, string Blurb);
+
+    private readonly LuckyPlan[] plans =
+    {
+        new("mini",     "Mini",     15m, "2 to 3 items"),
+        new("standard", "Standard", 25m, "4 to 5 items"),
+        new("deluxe",   "Deluxe",   40m, "6 or more items"),
+    };
+
+    // What the visitor types in. The [attributes] are the validation rules.
+    private class SubscriptionForm
+    {
+        [Required(ErrorMessage = "Please enter your name.")]
+        [StringLength(60, ErrorMessage = "That name is too long.")]
+        public string Name { get; set; } = "";
+
+        [Required(ErrorMessage = "Please enter your email.")]
+        [EmailAddress(ErrorMessage = "That email does not look right.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Please enter your shipping address.")]
+        [MinLength(10, ErrorMessage = "Please enter your full address.")]
+        public string Address { get; set; } = "";
+
+        public string PlanId { get; set; } = "standard";
+    }
+
+    private SubscriptionForm form = new();
+    private LuckyPlan? confirmedPlan;   // null = still filling in the form
+
+    private LuckyPlan SelectedPlan => plans.First(p => p.Id == form.PlanId);
+
+    private static string PriceText(decimal value) => $"${value:0.##}";
+
+    // Only runs when every validation rule passes.
+    private void Submit() => confirmedPlan = SelectedPlan;
+
+    private void Reset()
+    {
+        form = new();
+        confirmedPlan = null;
+    }
+}
