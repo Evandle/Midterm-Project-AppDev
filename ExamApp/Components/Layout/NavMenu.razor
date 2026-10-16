@@ -1,4 +1,33 @@
-﻿<nav class="flex gap-4">
-    <NavLink href="" Match="NavLinkMatch.All" class="px-2 py-1" ActiveClass="font-bold underline">Home</NavLink>
-    <NavLink href="about" class="px-2 py-1" ActiveClass="font-bold underline">About</NavLink>
+@* The category row under the logo. On phones it scrolls sideways.
+   The text color is set once on the <ul>, and ActiveClass only adds to it.
+   (If a base class and ActiveClass both set the same property, Tailwind may
+   pick the wrong one, so keep them on different properties.) *@
+
+<nav aria-label="Main" class="border-b border-gray-200">
+    <ul class="mx-auto flex max-w-7xl gap-7 overflow-x-auto px-4 text-[15px] text-gray-800 sm:px-6">
+        @foreach (var item in items)
+        {
+            <li class="shrink-0">
+                <NavLink href="@item.Href"
+                         Match="@(item.Exact ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                         class="block py-3 hover:text-black"
+                         ActiveClass="text-brand shadow-[inset_0_-2px_0_0_currentColor]">
+                    @item.Label
+                </NavLink>
+            </li>
+        }
+    </ul>
 </nav>
+
+@code {
+    private record NavItem(string Label, string Href, bool Exact = false);
+
+    private readonly NavItem[] items =
+    {
+        new("Home", "", true),
+        new("Merch", "merch"),
+        new("New Arrivals", "/#new-arrivals"),
+        new("Best Sellers", "/#best-sellers"),
+        new("Lucky Box", "subscribe"),
+    };
+}

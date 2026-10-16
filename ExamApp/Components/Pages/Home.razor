@@ -1,5 +1,95 @@
-﻿@page "/"
+@page "/"
 
 <PageTitle>Home</PageTitle>
 
-<h1 class="text-3xl font-bold text-brand">Hello</h1>
+<HeroCarousel Slides="slides" />
+
+@* ---------- Best products: 4 at a time, arrows change the page ---------- *@
+<section id="best-sellers" class="mx-auto max-w-7xl scroll-mt-32 px-4 pt-16 sm:px-6">
+    <div class="flex items-end justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-bold">Best products</h2>
+            <p class="mt-2 text-gray-500">Explore the best-selling items at the store.</p>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="button" aria-label="Previous products" @onclick="PrevPage"
+                    class="flex size-10 items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="size-5" aria-hidden="true">
+                    <path d="M15 5l-7 7 7 7" />
+                </svg>
+            </button>
+            <button type="button" aria-label="Next products" @onclick="NextPage"
+                    class="flex size-10 items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="size-5" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+        @foreach (var (product, i) in VisibleBest.Select((p, i) => (p, i)))
+        {
+            <ProductCard Product="product" Rank="@(page * PerPage + i + 1)" />
+        }
+    </div>
+
+    @* The progress bar fills as you page through. Its width must be an inline style
+       because the number changes while the app runs. *@
+    <div class="mt-10 h-0.5 bg-gray-200">
+        <div class="h-full bg-black transition-all duration-300" style="width: @(Progress)%"></div>
+    </div>
+</section>
+
+@* ---------- New arrivals grid ---------- *@
+<section id="new-arrivals" class="mx-auto max-w-7xl scroll-mt-32 px-4 pt-20 sm:px-6">
+    <div class="flex items-end justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-bold">New arrivals</h2>
+            <p class="mt-2 text-gray-500">Fresh drops, just in.</p>
+        </div>
+        <a href="merch" class="text-sm font-semibold underline underline-offset-4 hover:text-brand">Shop all merch</a>
+    </div>
+
+    <div class="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
+        @foreach (var product in newArrivals)
+        {
+            <ProductCard Product="product" />
+        }
+    </div>
+</section>
+
+@* ---------- Lucky Box promo ---------- *@
+<section class="mt-20 bg-brand text-white">
+    <div class="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between">
+        <div class="max-w-xl">
+            <h2 class="text-3xl font-bold">Monthly Lucky Box</h2>
+            <p class="mt-2 text-white/80">A random surprise box of merch, every month.</p>
+        </div>
+        <a href="subscribe" class="bg-white px-8 py-3 font-semibold text-brand hover:bg-gray-100">Subscribe now</a>
+    </div>
+</section>
+
+@code {
+    private const int PerPage = 4;
+
+    private readonly List<HeroSlide> slides = new()
+    {
+        new("images/banner2.jpg", "New drop is here", "Fresh merch in limited stock. Grab yours before it sells out.", "Shop new arrivals", "/#new-arrivals"),
+        new("images/banner1.jpg", "Best sellers", "The fan favorites everyone is talking about.", "See best sellers", "/#best-sellers"),
+        new("images/banner1.png", "Monthly Lucky Box", "One surprise box every month. You never know what you will get.", "Subscribe", "subscribe"),
+    };
+
+    private readonly List<Product> bestSellers = ProductCatalog.GetBestSellers();
+    private readonly List<Product> newArrivals = ProductCatalog.GetNewArrivals();
+
+    private int page;
+
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(bestSellers.Count / (double)PerPage));
+    private int Progress => (page + 1) * 100 / PageCount;
+    private IEnumerable<Product> VisibleBest => bestSellers.Skip(page * PerPage).Take(PerPage);
+
+    private void NextPage() => page = (page + 1) % PageCount;
+    private void PrevPage() => page = (page - 1 + PageCount) % PageCount;
+}

@@ -3,5 +3,9 @@
 @source "../Components";
 
 @theme {
-    --color-brand: #2d5bff;
+    --color-brand: #a6121f;
+}
+
+@layer base {
+    html { scroll-behavior: smooth; }
 }

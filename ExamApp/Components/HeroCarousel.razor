@@ -1,0 +1,71 @@
+@* The big banner at the top of Home. Arrows and dots change which slide shows.
+   It needs interactivity (@onclick), so the project must be --all-interactive,
+   or the page that uses it needs @rendermode InteractiveServer. *@
+
+<section class="relative overflow-hidden bg-gray-200" aria-roledescription="carousel" aria-label="Featured">
+    <div class="relative h-72 sm:h-96 lg:h-[40rem]">
+
+        @* Every slide is drawn on top of each other. Only the current one is visible. *@
+        @for (int i = 0; i < Slides.Count; i++)
+        {
+            var slide = Slides[i];
+            var isCurrent = i == current;
+
+            <div class="absolute inset-0 transition-opacity duration-500 @(isCurrent ? "opacity-100" : "pointer-events-none opacity-0")"
+                 aria-hidden="@(isCurrent ? "false" : "true")">
+                <img src="@slide.Image" alt="" class="size-full object-cover" />
+                <div class="absolute inset-0 bg-black/30"></div>
+
+                <div class="absolute inset-0 flex items-center">
+                    <div class="mx-auto w-full max-w-7xl px-4 sm:px-6">
+                        <div class="max-w-md text-white">
+                            <h2 class="text-3xl font-bold sm:text-5xl">@slide.Title</h2>
+                            <p class="mt-3 text-base sm:text-lg">@slide.Subtitle</p>
+                            <a href="@slide.Href" tabindex="@(isCurrent ? 0 : -1)"
+                               class="mt-6 inline-block bg-white px-6 py-3 font-semibold text-black hover:bg-brand hover:text-white">@slide.ButtonText</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <button type="button" aria-label="Previous slide" @onclick="Prev"
+                class="absolute left-3 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-black hover:bg-white">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="size-5" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" />
+            </svg>
+        </button>
+
+        <button type="button" aria-label="Next slide" @onclick="Next"
+                class="absolute right-3 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-black hover:bg-white">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="size-5" aria-hidden="true">
+                <path d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+
+        <div class="absolute inset-x-0 bottom-4 z-10 flex justify-center gap-2">
+            @for (int i = 0; i < Slides.Count; i++)
+            {
+                var dot = i;   // copy the loop variable so each dot remembers its own number
+                <button type="button" aria-label="@($"Go to slide {dot + 1}")" @onclick="() => current = dot"
+                        class="size-2.5 rounded-full transition @(dot == current ? "bg-white" : "bg-white/50")"></button>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public List<HeroSlide> Slides { get; set; } = new();
+
+    private int current;
+
+    private void Next()
+    {
+        if (Slides.Count > 0) current = (current + 1) % Slides.Count;
+    }
+
+    private void Prev()
+    {
+        if (Slides.Count > 0) current = (current - 1 + Slides.Count) % Slides.Count;
+    }
+}
