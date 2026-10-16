@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@source "../Components";
+
+@theme {
+    --color-brand: #2d5bff;
+}
