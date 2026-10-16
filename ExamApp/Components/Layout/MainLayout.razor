@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject CartService Cart
 
 @* Sticky header: logo and icons on top, category links underneath (see NavMenu). *@
 <header class="sticky top-0 z-40 bg-white">
@@ -15,12 +17,13 @@
             </a>
 
             <div class="flex items-center gap-5">
-                <button type="button" aria-label="Search" class="hover:text-brand">
+                @* The search box lives on the Merch page, so this goes there *@
+                <a href="merch" aria-label="Search the store" class="hover:text-brand">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-6" aria-hidden="true">
                         <circle cx="11" cy="11" r="7" />
                         <path d="M20 20l-4-4" />
                     </svg>
-                </button>
+                </a>
 
                 <button type="button" aria-label="Account" class="hover:text-brand">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-6" aria-hidden="true">
@@ -29,13 +32,14 @@
                     </svg>
                 </button>
 
-                <button type="button" aria-label="Cart, 0 items" class="relative hover:text-brand">
+                @* The number comes from the shared cart and updates by itself *@
+                <a href="cart" aria-label="@($"Cart, {Cart.Count} items")" class="relative hover:text-brand">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6" aria-hidden="true">
                         <path d="M6 8h12l1 12H5L6 8z" />
                         <path d="M9 8V6a3 3 0 0 1 6 0v2" />
                     </svg>
-                    <span class="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-black text-xs font-bold text-white">0</span>
-                </button>
+                    <span class="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-black text-xs font-bold text-white">@Cart.Count</span>
+                </a>
             </div>
         </div>
     </div>
@@ -61,3 +65,12 @@
     <a href="" class="reload underline">Reload</a>
     <a class="dismiss cursor-pointer">&#10005;</a>
 </div>
+
+@code {
+    // Redraw the header whenever the cart changes, and stop listening when the layout goes away.
+    protected override void OnInitialized() => Cart.OnChange += HandleCartChanged;
+
+    private void HandleCartChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Cart.OnChange -= HandleCartChanged;
+}
