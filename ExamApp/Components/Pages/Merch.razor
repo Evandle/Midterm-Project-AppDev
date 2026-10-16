@@ -1,0 +1,120 @@
+@page "/merch"
+
+<PageTitle>Merch</PageTitle>
+
+@* Work out the filtered and sorted list once, then reuse it below. *@
+@{
+    var results = Results.ToList();
+}
+
+<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+    <h1 class="text-3xl font-bold">All products</h1>
+    <p class="mt-2 text-gray-500">Browse all items at the store.</p>
+
+    @* ---------- Toolbar: search, in-stock toggle, sort ---------- *@
+    <div class="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <input type="search" @bind="search" @bind:event="oninput"
+               placeholder="Search merch..." aria-label="Search merch"
+               class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-2 focus:outline-brand md:max-w-sm" />
+
+        <div class="flex flex-wrap items-center gap-4">
+            <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" @bind="inStockOnly" class="size-4 accent-brand" />
+                In stock only
+            </label>
+
+            <label class="flex items-center gap-2 text-sm">
+                Sort by
+                <select @bind="sort" class="rounded-lg border border-gray-300 px-3 py-2">
+                    <option value="featured">Featured</option>
+                    <option value="price-asc">Price: low to high</option>
+                    <option value="price-desc">Price: high to low</option>
+                    <option value="name">Name: A to Z</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    @* ---------- Category chips ---------- *@
+    <div class="mt-6 flex flex-wrap gap-2">
+        @foreach (var c in categories)
+        {
+            <button type="button" @onclick="() => category = c"
+                    aria-pressed="@(c == category ? "true" : "false")"
+                    class="rounded-full border px-4 py-1.5 text-sm transition @(c == category ? "border-black bg-black text-white" : "border-gray-300 hover:bg-gray-100")">
+                @c
+            </button>
+        }
+    </div>
+
+    <p class="mt-8 text-sm text-gray-500">Showing @results.Count of @ProductCatalog.All.Count items</p>
+
+    @* ---------- Results ---------- *@
+    @if (results.Count == 0)
+    {
+        <div class="mt-6 rounded-lg border border-dashed border-gray-300 p-10 text-center">
+            <p class="font-semibold">No items match your filters.</p>
+            <button type="button" @onclick="ClearFilters"
+                    class="mt-4 bg-black px-5 py-2 text-sm font-semibold text-white hover:bg-brand">
+                Clear filters
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
+            @foreach (var product in results)
+            {
+                <ProductCard Product="product" />
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private string search = "";
+    private string category = "All";
+    private string sort = "featured";
+    private bool inStockOnly;
+
+    // "All" first, then every category found in the catalog, A to Z.
+    private readonly List<string> categories =
+        new List<string> { "All" }
+            .Concat(ProductCatalog.All.Select(p => p.Category).Distinct().OrderBy(c => c))
+            .ToList();
+
+    // Each filter narrows the list, then the sort orders what is left.
+    private IEnumerable<Product> Results
+    {
+        get
+        {
+            var items = ProductCatalog.All.AsEnumerable();
+
+            if (category != "All")
+                items = items.Where(p => p.Category == category);
+
+            if (inStockOnly)
+                items = items.Where(p => !p.IsSoldOut);
+
+            var term = search.Trim();
+            if (term.Length > 0)
+                items = items.Where(p => p.Name.Contains(term, StringComparison.OrdinalIgnoreCase));
+
+            return sort switch
+            {
+                "price-asc"  => items.OrderBy(p => p.Price),
+                "price-desc" => items.OrderByDescending(p => p.Price),
+                "name"       => items.OrderBy(p => p.Name),
+                _            => items   // "featured" keeps the catalog order
+            };
+        }
+    }
+
+    private void ClearFilters()
+    {
+        search = "";
+        category = "All";
+        sort = "featured";
+        inStockOnly = false;
+    }
+}
