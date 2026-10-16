@@ -1,0 +1,165 @@
+@page "/item/{Id:int}"
+
+<PageTitle>@(product?.Name ?? "Product not found")</PageTitle>
+
+@if (product is null)
+{
+    @* Someone typed a bad address like /item/999 *@
+    <section class="mx-auto max-w-7xl px-4 py-24 text-center sm:px-6">
+        <h1 class="text-3xl font-bold">Product not found</h1>
+        <p class="mt-2 text-gray-500">That item does not exist or was removed.</p>
+        <a href="merch" class="mt-6 inline-block bg-black px-6 py-3 font-semibold text-white hover:bg-brand">Back to merch</a>
+    </section>
+}
+else
+{
+    <section class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+
+        <nav aria-label="Breadcrumb" class="text-xs text-gray-500">
+            <a href="/" class="hover:underline">Home</a>
+            <span class="mx-1">/</span>
+            <a href="merch" class="hover:underline">Merch</a>
+            <span class="mx-1">/</span>
+            <span class="text-gray-800">@product.Name</span>
+        </nav>
+
+        <div class="mt-6 grid gap-10 md:grid-cols-2 lg:gap-16">
+
+            @* ---------- Left: product image ---------- *@
+            <div class="aspect-square overflow-hidden rounded-lg bg-sky-50">
+                <img src="@product.ImagePath" alt="@product.Name" class="size-full object-cover" />
+            </div>
+
+            @* ---------- Right: details and buy box ---------- *@
+            <div>
+                <h1 class="text-2xl font-bold sm:text-3xl">@product.Name</h1>
+                <p class="mt-2 text-2xl font-semibold text-brand">@Money(product.Price)</p>
+
+                @if (!string.IsNullOrWhiteSpace(product.Description))
+                {
+                    <p class="mt-4 text-gray-600">@product.Description</p>
+                }
+
+                <dl class="mt-6 grid grid-cols-[8rem_1fr] gap-y-3 border-t border-gray-200 pt-6 text-sm">
+                    @foreach (var (label, value) in Details)
+                    {
+                        <dt class="text-gray-500">@label</dt>
+                        <dd>@value</dd>
+                    }
+                </dl>
+
+                <div class="mt-6 border-t border-gray-200 pt-6">
+                    <p class="text-sm text-gray-500">Minimum order: 1 or more</p>
+
+                    @* Quantity stepper *@
+                    <div class="mt-4 flex items-center justify-between gap-4">
+                        <span class="text-sm font-medium">Quantity</span>
+                        <div class="flex items-center border border-gray-300">
+                            <button type="button" aria-label="Decrease quantity" @onclick="Decrease"
+                                    disabled="@(product.IsSoldOut || qty <= 1)"
+                                    class="size-10 text-lg hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40">&minus;</button>
+                            <span class="w-10 text-center" aria-live="polite">@ActiveQty</span>
+                            <button type="button" aria-label="Increase quantity" @onclick="Increase"
+                                    disabled="@(product.IsSoldOut || qty >= MaxQty)"
+                                    class="size-10 text-lg hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40">+</button>
+                        </div>
+                    </div>
+
+                    <p class="mt-6 text-right">
+                        <span class="text-sm text-gray-500">Total (@ActiveQty item(s))</span>
+                        <span class="ml-2 text-3xl font-bold">@Money(Total)</span>
+                    </p>
+
+                    <div class="mt-6 grid grid-cols-2 gap-3">
+                        <button type="button" @onclick="ToggleWish"
+                                aria-pressed="@(wished ? "true" : "false")"
+                                class="border px-6 py-3 font-semibold uppercase transition @(wished ? "border-brand bg-brand text-white" : "border-gray-300 hover:bg-gray-100")">
+                            @(wished ? "Wished" : "Wish")
+                        </button>
+
+                        <button type="button" @onclick="AddToCart" disabled="@product.IsSoldOut"
+                                class="px-6 py-3 font-semibold uppercase text-white @(product.IsSoldOut ? "cursor-not-allowed bg-gray-400" : "bg-black hover:bg-brand")">
+                            @(product.IsSoldOut ? "Sold out" : "Add to cart")
+                        </button>
+                    </div>
+
+                    @if (message is not null)
+                    {
+                        <p role="status" class="mt-4 border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">@message</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* ---------- More products ---------- *@
+        <section class="mt-20">
+            <h2 class="text-2xl font-bold">You may also like</h2>
+            <div class="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
+                @foreach (var related in Related)
+                {
+                    <ProductCard Product="related" />
+                }
+            </div>
+        </section>
+    </section>
+}
+
+@code {
+    private const int MaxQty = 10;
+
+    // Filled in from the address: /item/3 gives Id = 3
+    [Parameter] public int Id { get; set; }
+
+    private Product? product;
+    private int qty = 1;
+    private bool wished;
+    private string? message;
+
+    // Runs every time Id changes. OnInitialized would only run once, so clicking a
+    // "You may also like" product (/item/3 to /item/5) would keep showing the old one.
+    protected override void OnParametersSet()
+    {
+        product = ProductCatalog.GetById(Id);
+        qty = 1;
+        wished = false;
+        message = null;
+    }
+
+    // A sold out item always counts as 0 items.
+    private int ActiveQty => product is { IsSoldOut: true } ? 0 : qty;
+    private decimal Total => product is null ? 0 : product.Price * ActiveQty;
+
+    // Rows of the little info table. Edit the shipping text to whatever your store says.
+    private (string Label, string Value)[] Details => new[]
+    {
+        ("Category", product!.Category),
+        ("Shipping", "Standard delivery"),
+        ("Availability", product.IsSoldOut ? "Sold out" : "In stock"),
+    };
+
+    // Other products, same category first, never the one you are looking at.
+    private IEnumerable<Product> Related => ProductCatalog.All
+        .Where(p => p.Id != Id)
+        .OrderByDescending(p => p.Category == product?.Category)
+        .Take(4);
+
+    private static string Money(decimal value) => $"${value:0.00}";
+
+    private void Increase()
+    {
+        if (qty < MaxQty) qty++;
+    }
+
+    private void Decrease()
+    {
+        if (qty > 1) qty--;
+    }
+
+    private void ToggleWish() => wished = !wished;
+
+    // There is no cart yet, so this only shows a confirmation message.
+    private void AddToCart()
+    {
+        message = $"Added {qty} x {product!.Name} to your cart ({Money(Total)}).";
+    }
+}
